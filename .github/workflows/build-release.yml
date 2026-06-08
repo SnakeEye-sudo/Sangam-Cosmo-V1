@@ -1,0 +1,72 @@
+name: Build & Release Signed APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > release.jks
+
+      - name: Make Gradle executable
+        run: chmod +x gradlew
+
+      - name: Build release APK
+        env:
+          KEYSTORE_PATH: ${{ github.workspace }}/release.jks
+          KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
+          KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
+          KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sangam-cosmo-release
+          path: app/build/outputs/apk/release/*.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: "Sangam Cosmo ${{ github.ref_name }}"
+          body: |
+            ## Sangam Cosmo Browser ${{ github.ref_name }}
+
+            ### What's included
+            - Signed release APK — install directly on any Android device
+            - Minimum Android version: Android 7.0 (API 24)
+            - Multi-AI panel (Gemini, GPT-4o, Claude)
+            - Sangam Search Ultra
+            - Knowledge Graph, Notes, Downloads, Tabs
+
+            ### Install
+            1. Download `app-release.apk` below
+            2. Enable **Install unknown apps** in Android Settings
+            3. Open the APK and install
+          files: app/build/outputs/apk/release/*.apk
+          draft: false
+          prerelease: false
