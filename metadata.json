@@ -1,6 +1,0 @@
-{
-  "name": "Sangam Nexus",
-  "description": "An ultimate, fast, and multi-featured web browser with built-in status-aware media downloading capabilities and rich security.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
